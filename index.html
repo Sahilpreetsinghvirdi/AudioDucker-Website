@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Audio Ducker — Keep your music playing while you learn</title>
+<meta name="description" content="Audio Ducker keeps your music playing in the background at a low volume while you watch lectures and courses, then brings it back up to full when you pause.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%234f46e5'/><path d='M22 50a28 28 0 0 0 56 0M30 50a20 20 0 0 0 40 0M38 50a12 12 0 0 0 24 0M46 46v10' stroke='white' stroke-width='6' fill='none' stroke-linecap='round'/></svg>">
+<style>
+  :root {
+    --bg: #0f1117;
+    --panel: #161a23;
+    --border: #262c3a;
+    --text: #e8eaf0;
+    --muted: #9aa3b5;
+    --accent: #4f46e5;
+    --accent-hi: #6366f1;
+    --ok: #34d399;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+  }
+  .wrap { max-width: 920px; margin: 0 auto; padding: 0 24px; }
+
+  header.nav {
+    position: sticky; top: 0; z-index: 10;
+    background: rgba(15,17,23,.85);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--border);
+  }
+  .nav-inner { display: flex; align-items: center; justify-content: space-between; height: 60px; }
+  .logo { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 17px; }
+  .logo .dot { width: 26px; height: 26px; border-radius: 7px; background: var(--accent); display: grid; place-items: center; }
+  .nav-links a { color: var(--muted); text-decoration: none; margin-left: 20px; font-size: 14px; }
+  .nav-links a:hover { color: var(--text); }
+
+  .hero { padding: 90px 0 60px; text-align: center; }
+  .hero .badge {
+    display: inline-block; font-size: 13px; color: var(--accent-hi);
+    border: 1px solid var(--accent); padding: 4px 12px; border-radius: 999px; margin-bottom: 22px;
+  }
+  .hero h1 { font-size: 48px; line-height: 1.1; letter-spacing: -.02em; }
+  .hero h1 span { color: var(--accent-hi); }
+  .hero p { max-width: 620px; margin: 18px auto 34px; color: var(--muted); font-size: 18px; }
+  .cta { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
+  .btn {
+    display: inline-block; padding: 13px 26px; border-radius: 10px;
+    font-size: 15px; font-weight: 600; text-decoration: none; cursor: pointer; border: 1px solid transparent;
+  }
+  .btn.primary { background: var(--accent); color: #fff; }
+  .btn.primary:hover { background: var(--accent-hi); }
+  .btn.ghost { color: var(--text); border-color: var(--border); background: var(--panel); }
+  .btn.ghost:hover { border-color: var(--muted); }
+
+  section { padding: 70px 0; }
+  section h2 { font-size: 30px; letter-spacing: -.01em; margin-bottom: 12px; }
+  section .sub { color: var(--muted); margin-bottom: 40px; }
+
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 18px; }
+  .card { background: var(--panel); border: 1px solid var(--border); border-radius: 14px; padding: 24px; }
+  .card h3 { font-size: 17px; margin-bottom: 8px; }
+  .card p { color: var(--muted); font-size: 14.5px; }
+
+  .install { text-align: center; }
+  .cmd-wrap {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 12px; overflow: hidden;
+  }
+  .cmd-top { display: flex; justify-content: flex-end; padding: 12px 14px 0; }
+  .cmd-box {
+    font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
+    font-size: 13.5px; color: var(--text); overflow-x: auto; text-align: left;
+    padding: 10px 18px 16px;
+  }
+  .cmd-box code { white-space: nowrap; }
+  .cmd-top button {
+    background: var(--accent); color: #fff; border: 0; border-radius: 8px;
+    padding: 8px 14px; font-size: 13px; font-weight: 600; cursor: pointer;
+  }
+  .cmd-top button:hover { background: var(--accent-hi); }
+  .cmd-box button:hover { background: var(--accent-hi); }
+  .cmd-note { color: var(--muted); font-size: 14px; margin-top: 14px; }
+
+  .steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 18px; counter-reset: step; }
+  .step { background: var(--panel); border: 1px solid var(--border); border-radius: 14px; padding: 24px; }
+  .step b { display: block; color: var(--accent-hi); font-size: 13px; margin-bottom: 8px; }
+  .step p { color: var(--muted); font-size: 14.5px; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 14.5px; background: var(--panel); border-radius: 12px; overflow: hidden; }
+  th, td { text-align: left; padding: 12px 16px; border-bottom: 1px solid var(--border); }
+  th { color: var(--muted); font-weight: 600; font-size: 13px; text-transform: uppercase; letter-spacing: .05em; }
+  td:last-child { color: var(--muted); }
+  tr:last-child td { border-bottom: 0; }
+
+  .faq details { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 18px 22px; margin-bottom: 12px; }
+  .faq summary { font-weight: 600; cursor: pointer; font-size: 15.5px; }
+  .faq details p { color: var(--muted); margin-top: 10px; font-size: 14.5px; }
+
+  footer { border-top: 1px solid var(--border); padding: 34px 0; color: var(--muted); font-size: 13.5px; }
+  .foot { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 10px; }
+  .foot a { color: var(--muted); text-decoration: none; }
+  .foot a:hover { color: var(--text); }
+
+  @media (max-width: 600px) {
+    .hero { padding: 60px 0 40px; }
+    .hero h1 { font-size: 34px; }
+    .nav-links a { margin-left: 12px; }
+    .cmd-box code { white-space: normal; word-break: break-all; }
+  }
+</style>
+</head>
+<body>
+
+<header class="nav">
+  <div class="wrap nav-inner">
+    <div class="logo"><span class="dot"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round"><path d="M5 12a7 7 0 0 0 14 0M8 12a4 4 0 0 0 8 0M11 8v5"/></svg></span>Audio Ducker</div>
+    <nav class="nav-links">
+      <a href="#features">Features</a>
+      <a href="#install">Install</a>
+      <a href="#how">How it works</a>
+      <a href="#faq">FAQ</a>
+    </nav>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="wrap">
+    <span class="badge">Free &middot; Open source &middot; Windows 10 / 11</span>
+    <h1>Keep your music playing.<br>Lectures stay <span>the star</span>.</h1>
+    <p>Watching a course, a lecture, or vibe coding? Audio Ducker keeps your playlist going at a low background volume the whole time &mdash; and brings the music back up to full the moment you pause. No mute buttons, no sliding bars, no missed beats.</p>
+    <div class="cta">
+      <a class="btn primary" href="https://github.com/Sahilpreetsinghvirdi/AudioDucker/releases/latest" target="_blank" rel="noopener">Download now</a>
+      <a class="btn ghost" href="#install">See the one-line install</a>
+    </div>
+  </div>
+</section>
+
+<section id="features">
+  <div class="wrap">
+    <h2>Features</h2>
+    <p class="sub">The study-flow companion: lectures first, beats second.</p>
+    <div class="grid">
+      <div class="card">
+        <h3>Made for learning</h3>
+        <p>Watch a course or lecture while Spotify keeps playing underneath. Music dips low, never stops, and surges back when you pause.</p>
+      </div>
+      <div class="card">
+        <h3>Smooth fades</h3>
+        <p>Volume glides down and back up over a duration you choose &mdash; no abrupt drops that yank you out of the flow.</p>
+      </div>
+      <div class="card">
+        <h3>Pick your apps</h3>
+        <p>Choose which apps duck (Spotify, VLC, games...) or duck every other app whenever you're watching something.</p>
+      </div>
+      <div class="card">
+        <h3>Restores to your levels</h3>
+        <p>Every app is restored to the exact volume it had before, even if you adjusted it mid-duck.</p>
+      </div>
+      <div class="card">
+        <h3>Precise browser detection</h3>
+        <p>Optional companion extension tells Audio Ducker exactly how many YouTube tabs are playing, so it ducks only when it should.</p>
+      </div>
+      <div class="card">
+        <h3>Quiet and tidy</h3>
+        <p>Sits in the system tray. Right-click for settings. Logs to a file for diagnostics &mdash; no telemetry, no cloud.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="install" class="install">
+  <div class="wrap">
+    <h2>Install in one command</h2>
+    <p class="sub">Copy this into Windows PowerShell (or any terminal) and press Enter:</p>
+    <div class="cmd-wrap">
+      <div class="cmd-top">
+        <button id="copyBtn" onclick="copyCmd()">Copy</button>
+      </div>
+      <div class="cmd-box">
+        <code id="cmd">powershell -ExecutionPolicy Bypass -Command "irm https://raw.githubusercontent.com/Sahilpreetsinghvirdi/AudioDucker/main/install.ps1 | iex"</code>
+      </div>
+    </div>
+    <p class="cmd-note">This downloads the latest release to <b>%LOCALAPPDATA%\Programs\AudioDucker</b> and starts it. Or grab the zip from the <a href="https://github.com/Sahilpreetsinghvirdi/AudioDucker/releases" target="_blank" rel="noopener" style="color:var(--accent-hi)">Releases page</a> and run <code>AudioDucker.exe</code>.</p>
+  </div>
+</section>
+
+<section id="how">
+  <div class="wrap">
+    <h2>How it works</h2>
+    <p class="sub">Three steps between you and your study playlist.</p>
+    <div class="steps">
+      <div class="step"><b>STEP 1</b><p>Right-click the tray icon and open Settings. Tick your music apps &mdash; Spotify, VLC, anything you jam to.</p></div>
+      <div class="step"><b>STEP 2</b><p>Pick the background volume (e.g. 25%) and how fast the music dips and rises.</p></div>
+      <div class="step"><b>STEP 3</b><p>Play the lecture. Music settles low behind the instructor. Pause &mdash; the music comes roaring back.</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="faq">
+  <div class="wrap">
+    <h2>Frequently asked questions</h2>
+    <div class="faq">
+      <details>
+        <summary>So I can listen to music while studying a course?</summary>
+        <p>Exactly that. Keep Spotify (or any player) on, start the lecture, and Audio Ducker lowers your music to a background level so you hear the instructor clearly. Pause the video and your music fades back up to full volume.</p>
+      </details>
+      <details>
+        <summary>What makes it duck? Does it listen to my microphone?</summary>
+        <p>No. Audio Ducker watches the browser's <i>audio session</i> &mdash; the same Windows mechanism the volume mixer uses. It knows when the browser is making sound and acts on that. Nothing is recorded or sent anywhere.</p>
+      </details>
+      <details>
+        <summary>Can I control exactly which apps get ducked?</summary>
+        <p>Yes. In Settings you can pick specific apps, or enable "duck all others" to quiet everything else while you play something in the browser.</p>
+      </details>
+      <details>
+        <summary>What happens if I change the volume while it's ducking?</summary>
+        <p>Your manual change is respected. Audio Ducker re-reads the baseline and restores apps to the levels you set.</p>
+      </details>
+      <details>
+        <summary>Is there a browser extension?</summary>
+        <p>An optional extension makes browser detection precise &mdash; it tells the app how many YouTube tabs are playing so it only ducks when a tab is actually audible. See the repo's <code>browser/</code> folder for install steps.</p>
+      </details>
+      <details>
+        <summary>How do I uninstall?</summary>
+        <p>Close the app from the tray and delete the folder <code>%LOCALAPPDATA%\Programs\AudioDucker</code>. Settings live in <code>%APPDATA%\AudioDucker</code>.</p>
+      </details>
+      <details>
+        <summary>Is it really free?</summary>
+        <p>Yes &mdash; free and open source under the Apache 2.0 license. You can even build it yourself from the source on GitHub.</p>
+      </details>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap foot">
+    <span>&copy; 2026 Sahil Virdi &middot; Audio Ducker is licensed under Apache 2.0.</span>
+    <span><a href="https://github.com/Sahilpreetsinghvirdi/AudioDucker" target="_blank" rel="noopener">GitHub</a> &middot; <a href="https://github.com/Sahilpreetsinghvirdi/AudioDucker/issues" target="_blank" rel="noopener">Report an issue</a></span>
+  </div>
+</footer>
+
+<script>
+  function copyCmd() {
+    var el = document.getElementById('cmd');
+    var text = el.textContent;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(done);
+    } else {
+      var ta = document.createElement('textarea');
+      ta.value = text;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      done();
+    }
+    function done() {
+      var b = document.getElementById('copyBtn');
+      b.textContent = 'Copied!';
+      setTimeout(function () { b.textContent = 'Copy'; }, 1600);
+    }
+  }
+</script>
+
+</body>
+</html>
